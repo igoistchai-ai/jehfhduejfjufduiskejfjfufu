@@ -602,3 +602,22 @@ def run_bot():
 
 if __name__ == "__main__":
     run_bot()
+# ─── keep-alive HTTP для Render Web Service ───────────────────────────────────
+import os
+from http.server import HTTPServer, BaseHTTPRequestHandler
+
+class _Ping(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"ok")
+    def log_message(self, *a):
+        pass
+
+def _run_http():
+    port = int(os.environ.get("PORT", 8080))
+    HTTPServer(("0.0.0.0", port), _Ping).serve_forever()
+
+if __name__ == "__main__":
+    threading.Thread(target=_run_http, daemon=True).start()
+    run_bot()

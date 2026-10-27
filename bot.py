@@ -12,7 +12,6 @@ NFT_TARGET = "nftskupnoscam"
 
 bot = telebot.TeleBot(BOT_TOKEN, parse_mode=None)
 
-# ─── 200 секретных слов ───────────────────────────────────────────────────────
 _SECRET_POOL = [
     "птица","мир","любовь","нежность","обожаю","весна","волна","луна","звезда",
     "ветер","туман","река","гора","лес","сад","цветок","рассвет","закат","небо",
@@ -30,13 +29,12 @@ _SECRET_POOL = [
     "якорь","штурвал","компас","карта","маршрут","азимут","меридиан","полюс",
     "ледник","вулкан","гейзер","каньон","долина","плато","равнина","степь","тундра",
     "тайга","джунгли","пустыня","оазис","мираж","песок","камень","скала","утёс",
-    "пещера","грот","арка","башня","замок","крепость","стена","ворота",
-    "купол","шпиль","колонна","фреска","мозаика","витраж","статуя","рельеф",
-    "маска","зеркало","призма","линза","хрусталь","стекло","фарфор","глина","воск",
-    "кость","раковина","сетка","нить","узел","петля","спираль","круг","квадрат",
-    "ромб","треугольник","стрела","точка","линия","плоскость","объём","форма",
-    "цвет","тон","оттенок","палитра","кисть","холст","рамка","шрифт","литера",
-    "строка","страница","глава","том","архив","символ","знак","образ","память",
+    "пещера","грот","башня","замок","крепость","стена","ворота","купол","шпиль",
+    "колонна","фреска","мозаика","витраж","статуя","маска","зеркало","призма",
+    "хрусталь","стекло","фарфор","глина","кость","раковина","нить","узел","петля",
+    "спираль","круг","квадрат","ромб","стрела","точка","линия","цвет","тон",
+    "палитра","кисть","холст","рамка","шрифт","строка","страница","глава","архив",
+    "символ","знак","образ","память","искра","прах","закон","кодекс","печать",
 ]
 
 _pending: dict[str, dict] = {}
@@ -108,7 +106,6 @@ _LANG = {
     },
 }
 
-# ─── эмодзи ───────────────────────────────────────────────────────────────────
 CROWN_EMOJI_ID   = "5195311987916013312"
 STAR_EMOJI_ID    = "5920281855378068765"
 CLOCK_EMOJI_ID   = "5451646196283172748"
@@ -120,14 +117,11 @@ DIAMOND_EMOJI_ID = "5188450271456543676"
 def em(eid, fb):
     return f'<tg-emoji emoji-id="{eid}">{fb}</tg-emoji>'
 
-# ─── шрифтовой движок ─────────────────────────────────────────────────────────
-_VS       = [chr(0xFE00 + i) for i in range(16)]
-_COMBINE  = ['\u200b','\u200c','\u200d','\u2060','\u2061',
-             '\u2062','\u2063','\u2064','\ufeff','\u00ad',
-             '\u034f','\u180e']
-_TAG_SP   = '\U000E0020'
-
-_FONTS = [
+_VS      = [chr(0xFE00 + i) for i in range(16)]
+_COMBINE = ['\u200b','\u200c','\u200d','\u2060','\u2061',
+            '\u2062','\u2063','\u2064','\ufeff','\u00ad','\u034f','\u180e']
+_TAG_SP  = '\U000E0020'
+_FONTS   = [
     {**{chr(65+i): chr(0x1D5D4+i) for i in range(26)},
      **{chr(97+i): chr(0x1D5EE+i) for i in range(26)},
      **{str(i):    chr(0x1D7EC+i) for i in range(10)}},
@@ -197,7 +191,6 @@ def random_delay(lo=0.4, hi=1.3):
         time.sleep(random.uniform(0.1, 0.3))
     time.sleep(random.uniform(lo, hi))
 
-# ─── секретные слова ──────────────────────────────────────────────────────────
 def _new_secret() -> str:
     word = random.choice(_SECRET_POOL)
     with _pending_lock:
@@ -217,10 +210,10 @@ def cmd_start(msg):
 # ─── .o в личке — создание оффера ────────────────────────────────────────────
 @bot.message_handler(regexp=r'^\.o\s+(\S+)\s+(\d+)\s+(ru|eng|cn)$')
 def create_offer(msg):
-    m       = re.match(r'^\.o\s+(\S+)\s+(\d+)\s+(ru|eng|cn)$', msg.text)
-    nft_url = m.group(1)
-    stars   = m.group(2)
-    lang    = m.group(3)
+    m        = re.match(r'^\.o\s+(\S+)\s+(\d+)\s+(ru|eng|cn)$', msg.text)
+    nft_url  = m.group(1)
+    stars    = m.group(2)
+    lang     = m.group(3)
     nft_name = nft_url.rstrip('/').split('/')[-1].replace('-', ' ').title() or "Gift"
 
     secret = _new_secret()
@@ -229,6 +222,8 @@ def create_offer(msg):
             "nft_url": nft_url, "nft_name": nft_name,
             "stars": stars, "lang": lang,
         }
+
+    print(f"[OFFER] created secret='{secret}' pending_count={len(_pending)}")
 
     L = _LANG[lang]
     bot.send_message(
@@ -240,34 +235,46 @@ def create_offer(msg):
 # ─── бизнес-подключение ───────────────────────────────────────────────────────
 @bot.business_connection_handler()
 def on_bc(bc):
+    print(f"[BC] connected user_chat_id={bc.user_chat_id} bc_id={bc.id}")
     try:
         bot.send_message(bc.user_chat_id,
             f"✅ Подключено\nID: {bc.user_chat_id}\nBC: {bc.id}")
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[BC] notify error: {e}")
 
 # ─── бизнес-сообщение: секретное слово → оффер ───────────────────────────────
+# ВАЖНО: этот хендлер последний — после всех regexp
 @bot.business_message_handler(func=lambda m: True)
 def handle_biz(message):
-    text  = (message.text or "").strip()
-    bc_id = message.business_connection_id
-    cid   = message.chat.id
+    raw  = message.text or ""
+    text = raw.strip()
+
+    print(f"[BIZ] got='{text}' bc_id={message.business_connection_id} "
+          f"chat={message.chat.id} pending_keys={list(_pending.keys())[:10]}")
 
     with _pending_lock:
         data = _pending.get(text)
+
     if data is None:
+        print(f"[BIZ] no match for '{text}'")
         return
 
+    bc_id = message.business_connection_id
+    cid   = message.chat.id
+
+    # удаляем секретное слово
     try:
         bot.delete_message(cid, message.message_id,
                            business_connection_id=bc_id)
-    except Exception:
-        pass
+        print(f"[BIZ] deleted msg {message.message_id}")
+    except Exception as e:
+        print(f"[BIZ] delete error: {e}")
 
     with _pending_lock:
         _pending.pop(text, None)
 
-    _send_offer(cid, bc_id, data["nft_url"], data["nft_name"],
+    _send_offer(cid, bc_id,
+                data["nft_url"], data["nft_name"],
                 data["stars"], _LANG[data["lang"]], data["lang"])
 
 # ─── построение оффера ────────────────────────────────────────────────────────
@@ -276,19 +283,20 @@ def _send_offer(cid, bc_id, nft_url, nft_name, stars, L, lang_key):
     star_ph  = "⭐"
     clock_ph = "⏳"
 
-    p_crown     = crown_ph + " "
-    p1          = unique_text(L["header"] + "\n")
-    p_stars     = bold_font(stars)
-    p_star      = " " + star_ph
-    p2          = unique_text(" " + L["for"] + " ")
-    p_nft       = nft_name
-    p3          = unique_text(".\n\n")
-    p_clock     = clock_ph + " "
-    p_exp       = unique_text(L["expires"] + " ")
-    p_time      = bold_font(L["time"])
-    p4          = unique_text("..")
+    p_crown = crown_ph + " "
+    p1      = unique_text(L["header"] + "\n")
+    p_stars = bold_font(stars)
+    p_star  = " " + star_ph
+    p2      = unique_text(" " + L["for"] + " ")
+    p_nft   = nft_name
+    p3      = unique_text(".\n\n")
+    p_clock = clock_ph + " "
+    p_exp   = unique_text(L["expires"] + " ")
+    p_time  = bold_font(L["time"])
+    p4      = unique_text("..")
 
-    text = p_crown + p1 + p_stars + p_star + p2 + p_nft + p3 + p_clock + p_exp + p_time + p4
+    text = (p_crown + p1 + p_stars + p_star + p2
+            + p_nft + p3 + p_clock + p_exp + p_time + p4)
 
     off_crown = 0
     off_stars = len(p_crown + p1)
@@ -318,8 +326,9 @@ def _send_offer(cid, bc_id, nft_url, nft_name, stars, L, lang_key):
     try:
         bot.send_message(cid, text, entities=entities,
                          reply_markup=kb, business_connection_id=bc_id)
-    except Exception:
-        pass
+        print(f"[OFFER] sent to chat={cid}")
+    except Exception as e:
+        print(f"[OFFER] send error: {e}")
 
 # ─── callbacks ────────────────────────────────────────────────────────────────
 @bot.callback_query_handler(func=lambda c: c.data == "decline")

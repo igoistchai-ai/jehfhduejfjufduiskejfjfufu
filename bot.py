@@ -162,15 +162,38 @@ def decline(call):
     except Exception:
         pass
 
+# ─── keep-alive ───────────────────────────────────────────────────────────────
+import os, threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
+
+class _Ping(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200); self.end_headers(); self.wfile.write(b"ok")
+    def log_message(self, *a): pass
+
+threading.Thread(
+    target=lambda: HTTPServer(
+        ("0.0.0.0", int(os.environ.get("PORT", 8080))), _Ping
+    ).serve_forever(),
+    daemon=True
+).start()
+
 # ─── run ──────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    print("Bot started")
-    bot.infinity_polling(
-        allowed_updates=[
-            "message",
-            "business_message",
-            "business_connection",
-            "callback_query",
-        ]
-    )
+    while True:
+        try:
+            print("Bot started")
+            bot.infinity_polling(
+                allowed_updates=[
+                    "message",
+                    "business_message",
+                    "business_connection",
+                    "callback_query",
+                ],
+                timeout=30,
+                long_polling_timeout=20,
+            )
+        except Exception as e:
+            print(f"Restart: {e}")
+            import time; time.sleep(5)
